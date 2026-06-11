@@ -19,10 +19,7 @@ import uuid
 from datetime import datetime, timezone
 
 from google.adk.agents import LlmAgent, ParallelAgent, SequentialAgent
-from google.adk.tools.mcp_tool import McpToolset
-from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
 from google.genai import types
-from mcp import StdioServerParameters
 
 # ---------------------------------------------------------------------------
 # ABO / Rh compatibility rules (deterministic — no AI involvement)
@@ -425,24 +422,71 @@ def trigger_escalation(
 
 
 # ---------------------------------------------------------------------------
-# MCP connection to MongoDB (Audit Agent)
+# MongoDB audit tool — direct pymongo (no MCP/npx dependency)
 # ---------------------------------------------------------------------------
 
-def _build_mongo_mcp_toolset() -> McpToolset | None:
+def save_audit_record(
+    report_id: str,
+    timestamp: str,
+    patient_inputs: str,
+    compatibility_result: str,
+    risk_assessment: str,
+    clinical_recommendation: str,
+    safety_review: str,
+    escalation_decision: str,
+    handoff_report: str,
+) -> dict:
+    """Persist the complete session audit record to MongoDB Atlas.
+
+    Args:
+        report_id: Unique report identifier from the session.
+        timestamp: UTC timestamp of the session.
+        patient_inputs: Full patient data from the intake summary.
+        compatibility_result: ABO/Rh compatibility output.
+        risk_assessment: Risk level and rationale.
+        clinical_recommendation: Gemini recommendation with confidence score.
+        safety_review: Safety review verdict and any conflicts.
+        escalation_decision: Escalation routing decision and alert.
+        handoff_report: Full structured clinical handoff report.
+
+    Returns:
+        dict with keys: stored (bool), report_id, message.
+    """
     mongodb_uri = os.getenv("MONGODB_URI", "")
     if not mongodb_uri:
-        return None
+        return {
+            "stored": False,
+            "report_id": report_id,
+            "message": "MongoDB not configured — record preserved in session output only.",
+        }
 
-    return McpToolset(
-        connection_params=StdioConnectionParams(
-            server_params=StdioServerParameters(
-                command="npx",
-                args=["-y", "mongodb-mcp-server"],
-                env={"MDB_MCP_CONNECTION_STRING": mongodb_uri},
-            ),
-        ),
-        tool_filter=["find", "insertOne", "aggregate"],
-    )
+    try:
+        from pymongo import MongoClient
+        client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=8000)
+        collection = client["bloodsync"]["reports"]
+        collection.insert_one({
+            "report_id":              report_id,
+            "timestamp":              timestamp,
+            "patient_inputs":         patient_inputs,
+            "compatibility_result":   compatibility_result,
+            "risk_assessment":        risk_assessment,
+            "clinical_recommendation": clinical_recommendation,
+            "safety_review":          safety_review,
+            "escalation_decision":    escalation_decision,
+            "handoff_report":         handoff_report,
+        })
+        client.close()
+        return {
+            "stored": True,
+            "report_id": report_id,
+            "message": f"Audit record {report_id} saved to bloodsync.reports.",
+        }
+    except Exception as exc:
+        return {
+            "stored": False,
+            "report_id": report_id,
+            "message": f"MongoDB write failed: {exc}",
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -714,64 +758,32 @@ solely on the basis of this report.
     generate_content_config=_SYNTHESIS_CONFIG,
 )
 
-# 7. Audit Agent — persists to MongoDB via MCP
-_mongo_toolset = _build_mongo_mcp_toolset()
-_audit_tools = [_mongo_toolset] if _mongo_toolset else []
-
-_audit_instruction = (
-    """You are the BloodSync Audit Agent.
-
-Persist the complete session to MongoDB Atlas using `insertOne`.
-Collection: bloodsync.reports
-
-Include every field: intake_summary, compatibility_result, risk_assessment,
-clinical_recommendation, safety_review, escalation_decision, handoff_report.
-
-Confirm storage with the report_id."""
-    if _mongo_toolset else
-    """You are the BloodSync Audit Agent.
-
-You have no tools available. Do not attempt to call any tools or functions.
-
-MongoDB is not configured. Output the full session audit record below,
-copying all values verbatim from prior agents. Do not summarise or omit fields.
-
-SESSION AUDIT RECORD
----------------------
-report_id: [from intake_summary]
-timestamp: [from intake_summary]
-
-patient_inputs:
-[all fields from intake_summary]
-
-compatibility_results:
-[all fields from compatibility_result]
-
-risk_assessment:
-[risk_level, hb_band, rationale]
-
-clinical_recommendation:
-[verbatim including confidence score]
-
-safety_review:
-[verdict and conflicts]
-
-escalation_decision:
-[action, channel, alert]
-
-handoff_report:
-[verbatim full report]
-
-Audit trail preservation:
-Confirm the complete session has been preserved in the session output."""
-)
-
+# 7. Audit Agent — persists to MongoDB Atlas via direct pymongo tool
 audit_agent = LlmAgent(
     name="audit_agent",
     model=_GEMINI_MODEL,
-    description="Persists the complete agent session to MongoDB Atlas via MCP.",
-    instruction=_audit_instruction,
-    tools=_audit_tools,
+    description="Persists the complete agent session to MongoDB Atlas.",
+    instruction="""You are the BloodSync Audit Agent.
+
+Call `save_audit_record` with every field from the session. Extract values
+from the prior agents' outputs in this session:
+
+- report_id:                from Intake Summary
+- timestamp:                from Intake Summary
+- patient_inputs:           full text of Intake Summary
+- compatibility_result:     full text of Compatibility Result
+- risk_assessment:          full text of Risk Assessment
+- clinical_recommendation:  full text of Clinical Recommendation (including confidence score)
+- safety_review:            full text of Safety Review
+- escalation_decision:      full text of Escalation Routing
+- handoff_report:           full text of Clinical Handoff Report
+
+After calling the tool, report the result:
+- If stored=true:  "Audit record <report_id> saved to MongoDB Atlas (bloodsync.reports)."
+- If stored=false: "Audit record preserved in session output. Reason: <message>"
+
+Do not call any other tools.""",
+    tools=[save_audit_record],
     output_key="audit_record",
     generate_content_config=_DETERMINISTIC_CONFIG,
 )
