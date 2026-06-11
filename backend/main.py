@@ -239,14 +239,24 @@ async def _run_adk_pipeline(req, rh, report_id, timestamp) -> dict:
     prompt = _build_adk_prompt(req, rh, report_id, timestamp)
     user_message = Content(parts=[Part(text=prompt)], role="user")
 
-    final_text = ""
+    agent_texts: dict[str, str] = {}
     async for event in runner.run_async(
         user_id="clinician",
         session_id=session.id,
         new_message=user_message,
     ):
-        if event.is_final_response() and event.content and event.content.parts:
-            final_text = event.content.parts[0].text or ""
+        author = getattr(event, "author", "") or ""
+        if author and author != "audit_agent" and event.content and event.content.parts:
+            for part in event.content.parts:
+                t = getattr(part, "text", None)
+                if t:
+                    agent_texts[author] = t
+
+    final_text = (
+        agent_texts.get("handoff_agent")
+        or agent_texts.get("reasoning_agent")
+        or next(iter(reversed(list(agent_texts.values()))), "")
+    )
 
     # Run deterministic checks independently so we have structured data
     compat = _check_compat(req.blood_group, rh, req.donor_types)
@@ -359,7 +369,7 @@ def _extract_section(text: str, heading: str) -> str:
     return "\n".join(out).strip()
 
 
-def _persist(result: dict, req, rh: str):
+def _persist(result: dict, req, rh: str) -> str:
     record = {
         **result,
         "input": {
@@ -376,8 +386,10 @@ def _persist(result: dict, req, rh: str):
     col = _get_collection()
     if col is not None:
         col.insert_one(record)
+        return "mongodb"
     else:
         _memory_store.append(record)
+        return "memory"
 
 
 @app.get("/api/reports")
@@ -467,7 +479,8 @@ async def assess_stream(req: TransfusionRequest):
                             t = getattr(part, "text", None)
                             if t:
                                 last_text[author] = t
-                                final_text = t
+                                if author != "audit_agent":
+                                    final_text = t
 
                 # Complete the last agent
                 if current_agent and _AGENT_LABELS.get(current_agent):
@@ -496,7 +509,9 @@ async def assess_stream(req: TransfusionRequest):
                     ),
                     "engine": "adk",
                 }
-                _persist(result, req, rh)
+                storage = _persist(result, req, rh)
+                result["db_saved"]   = (storage == "mongodb")
+                result["db_storage"] = storage
                 yield _sse({"type": "complete", "result": result})
 
             else:
@@ -509,7 +524,9 @@ async def assess_stream(req: TransfusionRequest):
 
                 result = await _run_gemini_fallback(req, rh, report_id, timestamp)
                 result["engine"] = "gemini-direct"
-                _persist(result, req, rh)
+                storage = _persist(result, req, rh)
+                result["db_saved"]   = (storage == "mongodb")
+                result["db_storage"] = storage
                 yield _sse({"type": "complete", "result": result})
 
         except Exception as exc:

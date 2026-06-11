@@ -369,15 +369,27 @@
       padding: 24px 28px;
       margin-bottom: 24px;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
     }
     .result-hero-meta { color: #94a3b8; }
     .result-hero-meta h3 { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: #64748b; margin-bottom: 6px; }
     .meta-row { font-size: .82rem; line-height: 1.9; }
     .meta-row strong { color: #e2e8f0; font-weight: 600; }
+
+    .db-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: .76rem;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .db-badge-mongo  { background: rgba(22,163,74,.18); color: #4ade80; border: 1px solid rgba(74,222,128,.25); }
+    .db-badge-memory { background: rgba(217,119,6,.15);  color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
 
     .risk-pill {
       display: inline-flex;
@@ -619,13 +631,14 @@
   <div class="card" id="result">
     <div class="card-title">🏥 Assessment Report</div>
 
-    <!-- Hero bar: meta + risk pill -->
+    <!-- Hero bar: meta + risk pill + audit badge -->
     <div class="result-hero">
       <div class="result-hero-meta">
         <h3>Report Details</h3>
         <div class="meta-row" id="reportMeta"></div>
       </div>
       <div id="riskPill"></div>
+      <div id="dbBadge"></div>
     </div>
 
     <!-- Info tiles -->
@@ -676,7 +689,7 @@
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1" ||
     window.location.protocol === "file:"
-  ) ? "http://localhost:8080" : "";
+  ) ? "http://localhost:8080" : "https://bloodsync-agent-65642912333.europe-west2.run.app";
 
   const PIPELINE = [
     { id: "intake_agent",      name: "Intake Agent",       icon: "📋", sub: "Validating patient data" },
@@ -881,6 +894,15 @@
 
     document.getElementById("riskPill").innerHTML =
       `<div class="risk-pill risk-${riskLevel}">${RISK_ICONS[riskLevel] || "⚡"} ${RISK_LABELS[riskLevel] || riskLevel.toUpperCase()}</div>`;
+
+    const dbEl = document.getElementById("dbBadge");
+    if (d.db_saved) {
+      dbEl.innerHTML = `<div class="db-badge db-badge-mongo">💾 Audit saved to MongoDB Atlas</div>`;
+    } else if (d.db_storage === "memory") {
+      dbEl.innerHTML = `<div class="db-badge db-badge-memory">💾 Audit saved in-memory</div>`;
+    } else {
+      dbEl.innerHTML = "";
+    }
 
     document.getElementById("compatOk").innerHTML = d.compatible_donors?.length
       ? d.compatible_donors.map(t => tag(t, "tag-ok")).join("") : tag("None identified", "tag-none");

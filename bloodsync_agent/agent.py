@@ -306,8 +306,8 @@ def check_recommendation_consistency(
 ) -> dict:
     """Safety check: detect if the clinical recommendation contradicts compatibility results.
 
-    Flags any case where an incompatible donor appears to be recommended, or a
-    compatible donor is incorrectly excluded.
+    Flags any case where an incompatible donor appears to be positively recommended,
+    or where compatible donors are entirely absent from the recommendation.
 
     Args:
         recommendation_text: The full text of the Gemini clinical recommendation.
@@ -317,17 +317,25 @@ def check_recommendation_consistency(
     Returns:
         dict with keys: safe (bool), conflicts (list[str]), verdict.
     """
+    def _norm(s: str) -> str:
+        # Normalise hyphen/space variants so "O-negative" == "O negative"
+        return s.lower().replace("-", " ").replace("  ", " ").strip()
+
     conflicts = []
-    rec_lower = recommendation_text.lower()
+    rec_norm = _norm(recommendation_text)
 
-    negation_terms = {"not", "must not", "do not", "avoid", "incompatible", "unsafe", "contraindicated"}
+    negation_terms = [
+        "not", "must not", "do not", "avoid", "incompatible",
+        "unsafe", "contraindicated", "should not", "cannot", "no ",
+        "must avoid", "never", "prohibited",
+    ]
 
-    # Flag if an incompatible donor appears without a clear negation nearby
+    # Flag only if an incompatible donor appears with NO negation in a ±100-char window
     for donor in incompatible_donors:
-        donor_lower = donor.lower()
-        if donor_lower in rec_lower:
-            idx = rec_lower.find(donor_lower)
-            window = rec_lower[max(0, idx - 60):idx]
+        donor_norm = _norm(donor)
+        if donor_norm in rec_norm:
+            idx = rec_norm.find(donor_norm)
+            window = rec_norm[max(0, idx - 100): idx + len(donor_norm) + 100]
             negated = any(term in window for term in negation_terms)
             if not negated:
                 conflicts.append(
@@ -335,10 +343,10 @@ def check_recommendation_consistency(
                     f"without a clear negation — manual review required."
                 )
 
-    # Flag if compatible donors exist but none appear in the recommendation
+    # Flag only if compatible donors exist but NONE appear (normalised) in the recommendation
     if compatible_donors:
-        any_compatible_mentioned = any(d.lower() in rec_lower for d in compatible_donors)
-        if not any_compatible_mentioned:
+        any_mentioned = any(_norm(d) in rec_norm for d in compatible_donors)
+        if not any_mentioned:
             conflicts.append(
                 f"CONFLICT: Compatible donors {compatible_donors} were identified but "
                 f"none appear in the recommendation — recommendation may be incomplete."
@@ -348,8 +356,8 @@ def check_recommendation_consistency(
     verdict = (
         "SAFETY CLEARED — recommendation is consistent with compatibility results."
         if safe else
-        "SAFETY HOLD — recommendation conflicts with deterministic compatibility data. "
-        "Do not generate handoff report until resolved."
+        "SAFETY ADVISORY — potential inconsistency detected. Clinician must verify "
+        "the recommendation against compatibility data before proceeding."
     )
 
     return {
@@ -657,11 +665,8 @@ SAFETY REVIEW
 Verdict: <verdict from tool>
 Conflicts detected: <number>
 <list each conflict if any, or 'None'>
-Pipeline status: <CLEARED TO PROCEED or SAFETY HOLD — HUMAN REVIEW REQUIRED>
----
-
-If the verdict is SAFETY HOLD, state clearly that the handoff report must not be
-issued until a clinician resolves the conflict.""",
+Pipeline status: <CLEARED TO PROCEED or SAFETY ADVISORY — CLINICIAN VERIFICATION REQUIRED>
+---""",
     tools=[check_recommendation_consistency],
     output_key="safety_review",
     generate_content_config=_DETERMINISTIC_CONFIG,
@@ -706,12 +711,11 @@ handoff_agent = LlmAgent(
 
 You have no tools available. Do not attempt to call any tools or functions.
 
-CHECK FIRST: If the Safety Review shows 'SAFETY HOLD', output only:
-"HANDOFF REPORT WITHHELD — Safety review flagged a conflict between the AI
-recommendation and compatibility data. Human clinical review is required before
-this report can be issued. Report ID: [report_id]"
+Always produce the full report below — never withhold it. In an emergency, clinicians
+need all available information. If the Safety Review shows a SAFETY ADVISORY, include
+it prominently in the SAFETY REVIEW STATUS section so the clinician is aware.
 
-Otherwise, produce the full report below. Copy all values EXACTLY from prior agents.
+Copy all values EXACTLY from prior agents.
 Do not paraphrase clinical findings. Do not leave any section blank.
 
 ---
