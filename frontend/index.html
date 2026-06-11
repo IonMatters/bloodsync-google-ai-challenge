@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BloodSync — Emergency Transfusion Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --red:       #dc2626;
+      --red-dk:    #991b1b;
+      --red-lt:    #fef2f2;
+      --red-glow:  rgba(220,38,38,.18);
+      --amber:     #d97706;
+      --amber-lt:  #fffbeb;
+      --green:     #16a34a;
+      --green-lt:  #f0fdf4;
+      --blue:      #2563eb;
+      --blue-lt:   #eff6ff;
+      --navy:      #0f172a;
+      --navy-mid:  #1e293b;
+      --slate:     #334155;
+      --muted:     #64748b;
+      --border:    #e2e8f0;
+      --light:     #f8fafc;
+      --card:      #ffffff;
+      --text:      #0f172a;
+      --radius:    14px;
+      --radius-sm: 8px;
+      --shadow:    0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px rgba(0,0,0,.05), 0 10px 40px rgba(0,0,0,.08);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,.07), 0 20px 60px rgba(0,0,0,.10);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--light);
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(220,38,38,.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(37,99,235,.03) 0%, transparent 40%),
+        url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%2394a3b8' fill-opacity='0.15'/%3E%3C/svg%3E");
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Header ─── */
+    header {
+      background: var(--navy);
+      background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #1a1f2e 100%);
+      color: #fff;
+      padding: 0 40px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 0 rgba(255,255,255,.06), 0 4px 24px rgba(0,0,0,.4);
+    }
+    .header-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--red) 0%, #991b1b 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 4px 12px rgba(220,38,38,.4);
+      flex-shrink: 0;
+    }
+    .header-brand h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -.3px;
+      color: #f8fafc;
+    }
+    .header-brand p {
+      font-size: .72rem;
+      color: #94a3b8;
+      margin-top: 1px;
+      font-weight: 400;
+    }
+    .header-chips {
+      margin-left: auto;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .chip {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .4px;
+      white-space: nowrap;
+      border: 1px solid;
+    }
+    .chip-red   { background: rgba(220,38,38,.15); border-color: rgba(220,38,38,.30); color: #fca5a5; }
+    .chip-blue  { background: rgba(37,99,235,.15);  border-color: rgba(37,99,235,.30);  color: #93c5fd; }
+    .chip-green { background: rgba(22,163,74,.15);  border-color: rgba(22,163,74,.30);  color: #86efac; }
+
+    /* ─── Page ─── */
+    .page {
+      max-width: 1020px;
+      margin: 40px auto;
+      padding: 0 24px 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ─── Cards ─── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 32px;
+      overflow: hidden;
+      transition: box-shadow .2s;
+    }
+
+    .card-title {
+      font-size: .7rem;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .9px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ─── Demo bar ─── */
+    .demo-bar {
+      background: linear-gradient(135deg, var(--amber-lt), #fef3c7);
+      border: 1px solid #fde68a;
+      border-radius: var(--radius-sm);
+      padding: 13px 18px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .demo-bar-text {
+      flex: 1;
+      min-width: 180px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: #92400e;
+    }
+    .demo-bar-text span { color: #78350f; font-weight: 700; }
+    .demo-btn {
+      background: linear-gradient(135deg, var(--amber), #b45309);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 18px;
+      font-size: .8rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(180,83,9,.35);
+      transition: filter .15s, transform .1s;
+    }
+    .demo-btn:hover  { filter: brightness(1.08); }
+    .demo-btn:active { transform: scale(.97); }
+
+    /* ─── Form ─── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .span-2    { grid-column: 1 / -1; }
+
+    .field label {
+      display: block;
+      font-size: .71rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 7px;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: .92rem;
+      color: var(--text);
+      background: #fafbfc;
+      font-family: inherit;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px var(--red-glow);
+      background: #fff;
+    }
+    .field textarea { resize: vertical; min-height: 74px; line-height: 1.55; }
+
+    /* ─── Run button ─── */
+    .run-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--red) 0%, var(--red-dk) 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: .98rem;
+      font-weight: 800;
+      font-family: inherit;
+      letter-spacing: .15px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(220,38,38,.40);
+      transition: filter .15s, transform .1s, box-shadow .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .run-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.12) 0%, transparent 60%);
+    }
+    .run-btn:hover  { filter: brightness(1.06); box-shadow: 0 6px 20px rgba(220,38,38,.50); }
+    .run-btn:active { transform: scale(.99); }
+    .run-btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; filter: none; }
+
+    /* ─── Pipeline ─── */
+    #pipeline { display: none; }
+
+    .pipeline-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .live-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--red);
+      flex-shrink: 0;
+      animation: livepulse 1.4s ease-in-out infinite;
+    }
+    @keyframes livepulse {
+      0%   { box-shadow: 0 0 0 0 rgba(220,38,38,.5); }
+      70%  { box-shadow: 0 0 0 7px rgba(220,38,38,0); }
+      100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+    }
+    .pipeline-title {
+      font-size: .75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--navy);
+    }
+    .pipeline-timer {
+      margin-left: auto;
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    .steps { display: flex; flex-direction: column; gap: 4px; }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1.5px solid transparent;
+      transition: all .2s ease;
+    }
+    .step.waiting  { background: var(--light); border-color: var(--border); }
+    .step.running  { background: #fff5f5; border-color: #fca5a5; box-shadow: 0 2px 12px rgba(220,38,38,.10); }
+    .step.complete { background: var(--green-lt); border-color: #bbf7d0; }
+
+    .step-dot {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: all .2s;
+    }
+    .step.waiting  .step-dot { background: #e2e8f0; color: var(--muted); font-size: .65rem; }
+    .step.running  .step-dot { background: var(--red); color: #fff; animation: stepspin .7s linear infinite; }
+    .step.complete .step-dot { background: var(--green); color: #fff; }
+    @keyframes stepspin { to { transform: rotate(360deg); } }
+
+    .step-info  { flex: 1; min-width: 0; }
+    .step-name  { font-size: .85rem; font-weight: 700; color: var(--text); }
+    .step.waiting .step-name { color: var(--muted); font-weight: 500; }
+    .step.running .step-name { color: var(--red-dk); }
+    .step-sub   { font-size: .72rem; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .step-badge {
+      font-size: .68rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      padding: 2px 9px;
+      border-radius: 10px;
+    }
+    .step.waiting  .step-badge { background: #e2e8f0; color: var(--muted); }
+    .step.running  .step-badge { background: #fee2e2; color: var(--red-dk); animation: blink .9s linear infinite; }
+    .step.complete .step-badge { background: #dcfce7; color: var(--green); }
+    @keyframes blink { 50% { opacity: .3; } }
+
+    .parallel-wrap {
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 10px;
+      padding: 10px;
+      background: #f8fafc;
+    }
+    .parallel-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+    .parallel-tag {
+      font-size: .64rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--blue);
+      background: var(--blue-lt);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    .parallel-line {
+      flex: 1;
+      height: 1px;
+      background: repeating-linear-gradient(90deg, #cbd5e1 0, #cbd5e1 4px, transparent 4px, transparent 8px);
+    }
+    .parallel-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+    /* ─── Results ─── */
+    #result { display: none; }
+
+    .result-hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .result-hero-meta { color: #94a3b8; }
+    .result-hero-meta h3 { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: #64748b; margin-bottom: 6px; }
+    .meta-row { font-size: .82rem; line-height: 1.9; }
+    .meta-row strong { color: #e2e8f0; font-weight: 600; }
+
+    .risk-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-radius: 40px;
+      font-weight: 900;
+      font-size: .9rem;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      white-space: nowrap;
+    }
+    .risk-critical { background: linear-gradient(135deg, #dc2626, #991b1b); color: #fff; box-shadow: 0 4px 16px rgba(220,38,38,.45); }
+    .risk-high     { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 4px 16px rgba(245,158,11,.40); }
+    .risk-moderate { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; box-shadow: 0 4px 16px rgba(249,115,22,.35); }
+    .risk-low      { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; box-shadow: 0 4px 16px rgba(22,163,74,.35); }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .result-grid .span-2 { grid-column: span 2; }
+    .result-grid .span-3 { grid-column: 1 / -1; }
+
+    .info-tile {
+      background: #fafbfc;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      overflow: hidden;
+    }
+    .info-tile h3 {
+      font-size: .67rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--muted);
+      margin-bottom: 11px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .info-tile.accent-red   { border-top: 3px solid var(--red); }
+    .info-tile.accent-green { border-top: 3px solid var(--green); }
+    .info-tile.accent-amber { border-top: 3px solid var(--amber); }
+    .info-tile.accent-blue  { border-top: 3px solid var(--blue); }
+    .info-tile.accent-navy  { border-top: 3px solid var(--navy); }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 7px; }
+    .tag  { padding: 5px 13px; border-radius: 20px; font-size: .8rem; font-weight: 700; }
+    .tag-ok       { background: #dcfce7; color: #15803d; border: 1.5px solid #bbf7d0; }
+    .tag-no       { background: #fee2e2; color: #991b1b; border: 1.5px solid #fecaca; }
+    .tag-fallback { background: #fef3c7; color: #92400e; border: 1.5px solid #fde68a; }
+    .tag-none     { background: var(--light); color: var(--muted); border: 1.5px solid var(--border); font-style: italic; font-weight: 400; }
+
+    .recommendation-text {
+      font-size: .92rem;
+      line-height: 1.8;
+      color: var(--text);
+    }
+
+    .escalation-strip {
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: .85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+    }
+    .esc-critical { background: #fff1f2; border: 1.5px solid #fecaca; color: #991b1b; }
+    .esc-high     { background: #fffbeb; border: 1.5px solid #fde68a; color: #92400e; }
+    .esc-moderate { background: var(--blue-lt); border: 1.5px solid #bfdbfe; color: #1e40af; }
+    .esc-low      { background: var(--green-lt); border: 1.5px solid #bbf7d0; color: #15803d; }
+
+    .handoff-box {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 22px 24px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: .82rem;
+      line-height: 1.8;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,.3);
+    }
+
+    .disclaimer-strip {
+      background: #fffbeb;
+      border: 1.5px solid #fde68a;
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-size: .77rem;
+      color: #78350f;
+      line-height: 1.6;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .disclaimer-strip::before { content: "⚠️"; flex-shrink: 0; }
+
+    /* ─── Slide-in animation ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: fadeUp .4s ease forwards; }
+
+    /* ─── Footer ─── */
+    footer {
+      text-align: center;
+      font-size: .73rem;
+      color: var(--muted);
+      padding: 28px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--card);
+    }
+    footer strong { color: var(--text); }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 700px) {
+      header { padding: 0 20px; }
+      .header-chips .chip:not(:first-child) { display: none; }
+      .page { padding: 0 16px 60px; margin-top: 24px; }
+      .card { padding: 20px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .span-2 { grid-column: 1; }
+      .result-grid { grid-template-columns: 1fr; }
+      .result-grid .span-2, .result-grid .span-3 { grid-column: 1; }
+      .parallel-cols { grid-template-columns: 1fr; }
+      .result-hero { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="header-logo">🩸</div>
+  <div class="header-brand">
+    <h1>BloodSync</h1>
+    <p>Emergency Transfusion Decision Agent</p>
+  </div>
+  <div class="header-chips">
+    <span class="chip chip-red">Gemini 2.5 Flash</span>
+    <span class="chip chip-blue">Google ADK</span>
+    <span class="chip chip-green">8-Agent Pipeline</span>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ── Form ── -->
+  <div class="card animate-in">
+    <div class="card-title">📋 Patient &amp; Clinical Data</div>
+
+    <div class="demo-bar">
+      <div class="demo-bar-text">Demo: <span>32F · O-negative · Hb 6.8 g/dL · Maternal Haemorrhage</span></div>
+      <button class="demo-btn" onclick="loadDemo()">⚡ Load Demo Scenario</button>
+    </div>
+
+    <form id="assessForm" onsubmit="runAgent(event)">
+      <div class="form-grid">
+        <div class="field">
+          <label>Patient Age</label>
+          <input type="number" id="age" min="1" max="120" placeholder="e.g. 32" required />
+        </div>
+        <div class="field">
+          <label>Sex</label>
+          <select id="sex" required>
+            <option value="">Select…</option>
+            <option>Female</option>
+            <option>Male</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field span-2">
+          <label>Clinical Scenario</label>
+          <select id="scenario" required>
+            <option value="">Select scenario…</option>
+            <option>Maternal Haemorrhage</option>
+            <option>Trauma</option>
+            <option>Elective Surgery</option>
+            <option>Field Emergency</option>
+            <option>Paediatric Emergency</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>ABO Blood Group</label>
+          <select id="blood_group" required>
+            <option value="">Select…</option>
+            <option>O</option><option>A</option><option>B</option><option>AB</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Rh Factor</label>
+          <select id="rh_factor" required>
+            <option value="">Select…</option>
+            <option value="-">Negative (−)</option>
+            <option value="+">Positive (+)</option>
+          </select>
+        </div>
+        <div class="field span-2">
+          <label>Haemoglobin (g/dL)</label>
+          <input type="number" id="hemoglobin" step="0.1" min="1" max="20" placeholder="e.g. 6.8" required />
+        </div>
+        <div class="field span-2">
+          <label>Available Donor Blood Types — one per line</label>
+          <textarea id="donor_types" placeholder="O negative&#10;A positive&#10;B positive" required></textarea>
+        </div>
+        <div class="field span-2">
+          <label>Symptoms / Clinical Notes (optional)</label>
+          <textarea id="notes" placeholder="e.g. active haemorrhage, hypotensive, tachycardic"></textarea>
+        </div>
+        <div class="span-2">
+          <button class="run-btn" type="submit" id="submitBtn">⚡ Run BloodSync Agent Pipeline</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Pipeline ── -->
+  <div class="card" id="pipeline">
+    <div class="pipeline-head">
+      <div class="live-dot" id="liveDot"></div>
+      <span class="pipeline-title" id="pipelineTitle">Agent Pipeline — Running</span>
+      <span class="pipeline-timer" id="pipelineTimer">0.0s</span>
+    </div>
+    <div class="steps" id="pipelineSteps"></div>
+  </div>
+
+  <!-- ── Result ── -->
+  <div class="card" id="result">
+    <div class="card-title">🏥 Assessment Report</div>
+
+    <!-- Hero bar: meta + risk pill -->
+    <div class="result-hero">
+      <div class="result-hero-meta">
+        <h3>Report Details</h3>
+        <div class="meta-row" id="reportMeta"></div>
+      </div>
+      <div id="riskPill"></div>
+    </div>
+
+    <!-- Info tiles -->
+    <div class="result-grid">
+      <div class="info-tile accent-green">
+        <h3>✅ Compatible Donors</h3>
+        <div class="tags" id="compatOk"></div>
+      </div>
+      <div class="info-tile accent-red">
+        <h3>🚫 Incompatible Donors</h3>
+        <div class="tags" id="compatNo"></div>
+      </div>
+      <div class="info-tile accent-amber">
+        <h3>🟡 Emergency Fallback</h3>
+        <div class="tags" id="compatFallback"></div>
+      </div>
+
+      <div class="info-tile accent-navy span-2">
+        <h3>🧠 AI Clinical Recommendation</h3>
+        <p class="recommendation-text" id="recommendation"></p>
+      </div>
+      <div class="info-tile accent-blue">
+        <h3>📊 Risk Rationale</h3>
+        <p style="font-size:.83rem;line-height:1.65;color:var(--text);" id="riskRationale"></p>
+      </div>
+
+      <div class="span-3" id="escalationBanner" style="display:none;"></div>
+
+      <div class="info-tile span-3" style="padding:0; background:transparent; border:none;">
+        <div class="handoff-box" id="handoffReport"></div>
+      </div>
+
+      <div class="disclaimer-strip span-3" id="disclaimer"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <strong>BloodSync</strong> · Emergency Transfusion Decision Support &nbsp;·&nbsp;
+  Built with Gemini 2.5 Flash &amp; Google ADK &nbsp;·&nbsp;
+  Ion Matters HealthTech &nbsp;·&nbsp;
+  Not a substitute for clinical judgement
+</footer>
+
+<script>
+  const API_BASE = (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.protocol === "file:"
+  ) ? "http://localhost:8080" : "";
+
+  const PIPELINE = [
+    { id: "intake_agent",      name: "Intake Agent",       icon: "📋", sub: "Validating patient data" },
+    { id: "_parallel",         parallel: true, children: [
+      { id: "compatibility_agent", name: "Compatibility Check", icon: "🔬", sub: "ABO / Rh rules" },
+      { id: "risk_agent",          name: "Risk Assessment",     icon: "📊", sub: "Hb + scenario scoring" },
+    ]},
+    { id: "reasoning_agent",   name: "Clinical Reasoning", icon: "🧠", sub: "Gemini synthesis" },
+    { id: "review_agent",      name: "Safety Review",      icon: "🛡️", sub: "Conflict detection" },
+    { id: "escalation_router", name: "Escalation Router",  icon: "🚨", sub: "Autonomous routing" },
+    { id: "handoff_agent",     name: "Handoff Report",     icon: "📄", sub: "Generating report" },
+    { id: "audit_agent",       name: "Audit Agent",        icon: "💾", sub: "Persisting session" },
+  ];
+
+  let startTime, timerInterval;
+
+  function buildPipeline() {
+    const container = document.getElementById("pipelineSteps");
+    container.innerHTML = "";
+    for (const s of PIPELINE) {
+      if (s.parallel) {
+        const wrap = document.createElement("div");
+        wrap.className = "parallel-wrap";
+        wrap.innerHTML = `<div class="parallel-header"><span class="parallel-tag">⚡ Parallel Execution</span><div class="parallel-line"></div></div>`;
+        const cols = document.createElement("div");
+        cols.className = "parallel-cols";
+        for (const c of s.children) cols.appendChild(makeStepEl(c));
+        wrap.appendChild(cols);
+        container.appendChild(wrap);
+      } else {
+        container.appendChild(makeStepEl(s));
+      }
+    }
+  }
+
+  function makeStepEl(s) {
+    const el = document.createElement("div");
+    el.className = "step waiting";
+    el.id = "step-" + s.id;
+    el.dataset.t = "";
+    el.innerHTML = `
+      <div class="step-dot">○</div>
+      <div class="step-info">
+        <div class="step-name">${s.icon} ${s.name}</div>
+        <div class="step-sub">${s.sub}</div>
+      </div>
+      <div class="step-badge">waiting</div>`;
+    return el;
+  }
+
+  function setStep(id, state, snippet) {
+    const el = document.getElementById("step-" + id);
+    if (!el) return;
+    el.className = "step " + state;
+    const dot   = el.querySelector(".step-dot");
+    const sub   = el.querySelector(".step-sub");
+    const badge = el.querySelector(".step-badge");
+    if (state === "running") {
+      dot.textContent   = "↻";
+      badge.textContent = "running…";
+      el.dataset.t = Date.now();
+    } else if (state === "complete") {
+      const ms = Date.now() - parseInt(el.dataset.t || Date.now());
+      dot.textContent   = "✓";
+      badge.textContent = (ms / 1000).toFixed(1) + "s";
+      if (snippet) sub.textContent = snippet;
+    }
+  }
+
+  function startTimer() {
+    startTime = Date.now();
+    const el = document.getElementById("pipelineTimer");
+    timerInterval = setInterval(() => {
+      el.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+    }, 100);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    const total = ((Date.now() - startTime) / 1000).toFixed(1);
+    document.getElementById("pipelineTimer").textContent = `Done in ${total}s`;
+  }
+
+  function loadDemo() {
+    document.getElementById("age").value         = "32";
+    document.getElementById("sex").value         = "Female";
+    document.getElementById("scenario").value    = "Maternal Haemorrhage";
+    document.getElementById("blood_group").value = "O";
+    document.getElementById("rh_factor").value   = "-";
+    document.getElementById("hemoglobin").value  = "6.8";
+    document.getElementById("donor_types").value = "O negative\nA positive\nB positive";
+    document.getElementById("notes").value       = "Severe postpartum haemorrhage, hypotensive, tachycardic, estimated blood loss 1.5L";
+  }
+
+  async function runAgent(e) {
+    e.preventDefault();
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.textContent = "Pipeline running…";
+
+    document.getElementById("result").style.display = "none";
+    buildPipeline();
+
+    const pipelineEl = document.getElementById("pipeline");
+    const dot        = document.getElementById("liveDot");
+    pipelineEl.style.display = "block";
+    pipelineEl.classList.add("animate-in");
+    document.getElementById("pipelineTitle").textContent = "Agent Pipeline — Running";
+    dot.style.cssText = "";
+    pipelineEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    startTimer();
+
+    const donors = document.getElementById("donor_types").value
+      .split("\n").map(s => s.trim()).filter(Boolean);
+
+    const payload = {
+      age:         parseInt(document.getElementById("age").value),
+      sex:         document.getElementById("sex").value,
+      scenario:    document.getElementById("scenario").value,
+      blood_group: document.getElementById("blood_group").value,
+      rh_factor:   document.getElementById("rh_factor").value,
+      hemoglobin:  parseFloat(document.getElementById("hemoglobin").value),
+      donor_types: donors,
+      notes:       document.getElementById("notes").value,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/api/assess/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          let ev;
+          try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+          if (ev.type === "agent_start") {
+            setStep(ev.agent, "running");
+          } else if (ev.type === "agent_complete") {
+            setStep(ev.agent, "complete", ev.snippet);
+          } else if (ev.type === "complete") {
+            stopTimer();
+            document.getElementById("pipelineTitle").textContent = "Agent Pipeline — Complete ✓";
+            dot.style.background  = "var(--green)";
+            dot.style.animation   = "none";
+            dot.style.boxShadow   = "0 0 0 0";
+            renderResult(ev.result);
+          } else if (ev.type === "error") {
+            stopTimer();
+            document.getElementById("pipelineTitle").textContent = "Pipeline Error";
+            dot.style.background = "#dc2626";
+            dot.style.animation  = "none";
+            alert("BloodSync error: " + ev.message);
+          }
+        }
+      }
+    } catch (err) {
+      stopTimer();
+      alert("Error: " + err.message + "\n\nMake sure the backend is running on port 8080.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "⚡ Run BloodSync Agent Pipeline";
+    }
+  }
+
+  const RISK_ICONS  = { critical: "🚨", high: "⚠️", moderate: "⚡", low: "✅" };
+  const RISK_LABELS = { critical: "Critical Risk", high: "High Risk", moderate: "Moderate Risk", low: "Low Risk" };
+  const ESC_CLS     = { critical: "esc-critical", high: "esc-high", moderate: "esc-moderate", low: "esc-low" };
+
+  function tag(t, cls) { return `<span class="tag ${cls}">${t}</span>`; }
+
+  function extractLine(text, heading) {
+    if (!text) return "";
+    const idx = text.indexOf(heading);
+    if (idx === -1) return "";
+    const s = idx + heading.length;
+    const e = text.indexOf("\n", s);
+    return text.slice(s, e === -1 ? undefined : e).trim();
+  }
+
+  function renderResult(d) {
+    const riskLevel = (d.risk_level || "low").toLowerCase();
+
+    document.getElementById("reportMeta").innerHTML = `
+      <strong>Report ID:</strong> ${d.report_id} &nbsp;·&nbsp;
+      <strong>Blood type:</strong> ${d.patient_blood_type} &nbsp;·&nbsp;
+      <strong>Time:</strong> ${new Date(d.timestamp).toLocaleString()} &nbsp;·&nbsp;
+      <strong>Engine:</strong> ${d.engine || "adk"}
+    `;
+
+    document.getElementById("riskPill").innerHTML =
+      `<div class="risk-pill risk-${riskLevel}">${RISK_ICONS[riskLevel] || "⚡"} ${RISK_LABELS[riskLevel] || riskLevel.toUpperCase()}</div>`;
+
+    document.getElementById("compatOk").innerHTML = d.compatible_donors?.length
+      ? d.compatible_donors.map(t => tag(t, "tag-ok")).join("") : tag("None identified", "tag-none");
+    document.getElementById("compatNo").innerHTML = d.incompatible_donors?.length
+      ? d.incompatible_donors.map(t => tag(t, "tag-no")).join("") : tag("None", "tag-none");
+    document.getElementById("compatFallback").innerHTML = d.emergency_fallback?.length
+      ? d.emergency_fallback.map(t => tag(t, "tag-fallback")).join("") : tag("None available", "tag-none");
+
+    document.getElementById("riskRationale").textContent =
+      extractLine(d.handoff_report, "Risk Rationale:") || "See handoff report.";
+
+    document.getElementById("recommendation").textContent = d.recommendation;
+
+    const escText = extractLine(d.handoff_report, "Alert:");
+    const escEl   = document.getElementById("escalationBanner");
+    if (escText) {
+      escEl.style.display = "block";
+      escEl.innerHTML = `<div class="escalation-strip ${ESC_CLS[riskLevel] || 'esc-moderate'}">
+        <span style="flex-shrink:0">${RISK_ICONS[riskLevel]}</span><span>${escText}</span>
+      </div>`;
+    } else {
+      escEl.style.display = "none";
+    }
+
+    document.getElementById("handoffReport").textContent = d.handoff_report;
+    document.getElementById("disclaimer").textContent    = d.disclaimer;
+
+    const resultEl = document.getElementById("result");
+    resultEl.style.display = "block";
+    resultEl.classList.remove("animate-in");
+    void resultEl.offsetWidth;
+    resultEl.classList.add("animate-in");
+    resultEl.scrollIntoView({ behavior: "smooth" });
+  }
+</script>
+
+</body>
+</html>
