@@ -4,14 +4,17 @@ BloodSync Emergency Transfusion Agent — ADK Multi-Agent Implementation
 Architecture:
   root_agent (SequentialAgent)
     ├── intake_agent              — validates inputs, generates report ID
-    ├── parallel_assessment       — ParallelAgent:
+    ├── parallel_assessment       — ParallelAgent (runs simultaneously):
     │     ├── compatibility_agent —   deterministic ABO/Rh check
     │     └── risk_agent          —   haemoglobin + scenario risk scoring
     ├── reasoning_agent           — Gemini clinical synthesis + confidence score
-    ├── review_agent              — disagreement detection / AI safety guardrail
+    ├── review_agent              — hallucination guardrail (checks AI vs rules)
     ├── escalation_router         — autonomous routing by risk level
     ├── handoff_agent             — structured clinical transfer report
-    └── audit_agent               — persists session to MongoDB via MCP
+    └── audit_agent               — persists session to MongoDB via direct pymongo
+
+Agent communication: output_key session state (not conversational recall).
+Temperature: 0.0 for tool-calling agents, 0.2 for synthesis agents.
 """
 
 import os

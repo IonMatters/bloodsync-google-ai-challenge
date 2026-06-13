@@ -1,8 +1,14 @@
 """
 BloodSync Emergency Transfusion Agent — FastAPI HTTP layer
 
-Calls the ADK multi-agent pipeline (bloodsync_agent/agent.py) via InMemoryRunner.
-Falls back to direct Gemini call if ADK runner fails.
+Endpoints:
+  POST /api/assess/stream  — SSE stream of agent_start/agent_complete/complete events
+  POST /api/assess         — non-streaming JSON fallback
+  GET  /api/reports        — last 20 audit records from MongoDB (or in-memory)
+  GET  /health             — service status
+
+Runs the ADK eight-agent pipeline (bloodsync_agent/agent.py) via InMemoryRunner.
+Falls back to a direct Gemini call if ADK import fails.
 """
 
 import asyncio
